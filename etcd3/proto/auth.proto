@@ -1,4 +1,4 @@
-syntax = "proto3";
+xsyntax = "proto3";
 
 package authpb;
 

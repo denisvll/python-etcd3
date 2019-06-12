@@ -8,6 +8,7 @@ from etcd3.exceptions import Etcd3Exception
 from etcd3.leases import Lease
 from etcd3.locks import Lock
 from etcd3.members import Member
+from etcd3.auth import Auth
 
 __author__ = 'Louis Taylor'
 __email__ = 'louis@kragniz.eu'

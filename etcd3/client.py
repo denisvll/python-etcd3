@@ -12,6 +12,8 @@ import etcd3.exceptions as exceptions
 import etcd3.leases as leases
 import etcd3.locks as locks
 import etcd3.members
+import etcd3.auth
+
 import etcd3.transactions as transactions
 import etcd3.utils as utils
 import etcd3.watch as watch
@@ -167,6 +169,8 @@ class Etcd3Client(object):
         self.leasestub = etcdrpc.LeaseStub(self.channel)
         self.maintenancestub = etcdrpc.MaintenanceStub(self.channel)
         self.transactions = Transactions()
+        self.authstub = etcdrpc.AuthStub(self.channel)
+
 
     def close(self):
         """Call the GRPC channel close semantics."""
@@ -262,6 +266,7 @@ class Etcd3Client(object):
             credentials=self.call_credentials,
             metadata=self.metadata
         )
+
 
     def get(self, key, **kwargs):
         """
@@ -1029,6 +1034,168 @@ class Etcd3Client(object):
             credentials=self.call_credentials,
             metadata=self.metadata
         )
+    @_handle_errors
+    def userlist(self):
+        userlist_request = etcdrpc.AuthUserListRequest()
+        userlist_responce = self.authstub.UserList(userlist_request,
+                                                   self.timeout,
+                                                   credentials=self.call_credentials,
+                                                   metadata=self.metadata
+                                                   )
+        return userlist_responce
+
+    @_handle_errors
+    def useradd(self,name):
+
+        # try:
+        #     self.userget(name)
+        # except:
+        #     pass
+
+
+        useradd_request = etcdrpc.AuthUserAddRequest(name=name)
+        useradd_responce = self.authstub.UserAdd(useradd_request,
+                                                 self.timeout,
+                                                 credentials=self.call_credentials,
+                                                 metadata=self.metadata
+                                                 )
+        return useradd_responce
+
+    @_handle_errors
+    def userdelete(self,name):
+
+        try:
+            self.userget(name)
+        except:
+            raise Exception("user name  %s is not Found" % name)
+
+        userdelete_request = etcdrpc.AuthUserDeleteRequest(name=name)
+        userdelete_responce = self.authstub.UserDelete(userdelete_request,
+                                                 self.timeout,
+                                                 credentials=self.call_credentials,
+                                                 metadata=self.metadata
+                                                 )
+        return userdelete_responce
+
+    @_handle_errors
+    def userpasswd(self,name,password):
+        userpasswd_request = etcdrpc.AuthUserChangePasswordRequest(name=name,password=password)
+        userpasswd_responce = self.authstub.UserChangePassword(userpasswd_request,
+                                                 self.timeout,
+                                                 credentials=self.call_credentials,
+                                                 metadata=self.metadata
+                                                 )
+        return userpasswd_responce
+
+    @_handle_errors
+    def usergrandrole(self,name,role):
+        usergrandrole_request = etcdrpc.AuthUserGrantRoleRequest(user=name,role=role)
+        usergrandrole_responce = self.authstub.UserGrantRole(usergrandrole_request,
+                                                 self.timeout,
+                                                 credentials=self.call_credentials,
+                                                 metadata=self.metadata
+                                                 )
+        return usergrandrole_responce
+
+    @_handle_errors
+    def userrevokerole(self,name,role):
+        userrevokerole_request = etcdrpc.AuthUserRevokeRoleRequest(name=name,role=role)
+        userrevokerole_responce = self.authstub.UserRevokeRole(userrevokerole_request,
+                                                 self.timeout,
+                                                 credentials=self.call_credentials,
+                                                 metadata=self.metadata
+                                                 )
+        return userrevokerole_responce
+
+    @_handle_errors
+    def userget(self,user):
+        userget_request = etcdrpc.AuthUserGetRequest(name=user)
+        userget_responce = self.authstub.UserGet(userget_request,
+                                                 self.timeout,
+                                                 credentials=self.call_credentials,
+                                                 metadata=self.metadata
+                                                 )
+        return userget_responce
+
+    @_handle_errors
+    def roleadd(self,role):
+        roleadd_request = etcdrpc.AuthRoleAddRequest(name=role)
+        roleadd_responce = self.authstub.RoleAdd(roleadd_request,
+                                                   self.timeout,
+                                                   credentials=self.call_credentials,
+                                                   metadata=self.metadata
+                                                   )
+        return roleadd_responce
+
+    @_handle_errors
+    def roledelete(self, role):
+        roledelete_request = etcdrpc.AuthRoleDeleteRequest(role=role)
+        roledelete_responce = self.authstub.RoleDelete(roledelete_request,
+                                                 self.timeout,
+                                                 credentials=self.call_credentials,
+                                                 metadata=self.metadata
+                                                 )
+        return roledelete_responce
+
+    @_handle_errors
+    def roleget(self, role):
+        roleget_request = etcdrpc.AuthRoleGetRequest(role=role)
+        roleget_responce = self.authstub.RoleGet(roleget_request,
+                                                 self.timeout,
+                                                 credentials=self.call_credentials,
+                                                 metadata=self.metadata
+                                                 )
+        return roleget_responce
+
+    @_handle_errors
+    def rolelist(self):
+        rolelist_request = etcdrpc.AuthRoleListRequest()
+        rolelist_responce = self.authstub.RoleList(rolelist_request,
+                                                   self.timeout,
+                                                   credentials=self.call_credentials,
+                                                   metadata=self.metadata
+                                                   )
+        return rolelist_responce
+
+    @_handle_errors
+    def rolegrantpermission(self,role,path, perm_type ,prefix):
+
+        perm = {
+            "key": utils.to_bytes(path),
+            "permType" : perm_type
+        }
+
+        rolegrantpermission_request = etcdrpc.AuthRoleGrantPermissionRequest(name=role,perm=perm)
+
+        if prefix:
+            rolegrantpermission_request.perm.range_end = utils.increment_last_byte(utils.to_bytes(path))
+
+
+        rolegrantpermission_responce = self.authstub.RoleGrantPermission(rolegrantpermission_request,
+                                                   self.timeout,
+                                                   credentials=self.call_credentials,
+                                                   metadata=self.metadata
+                                                   )
+        return rolegrantpermission_responce
+
+    @_handle_errors
+    def rolerevokepermission(self,role,path,prefix):
+
+        rolerevokepermission_request = etcdrpc.AuthRoleRevokePermissionRequest(role=role,key=path)
+
+        if prefix:
+            rolerevokepermission_request.range_end = utils.increment_last_byte(utils.to_bytes(path))
+
+        # else:
+        #     rolerevokepermission_request.range_end = utils.to_bytes(path)
+
+        print(rolerevokepermission_request)
+        rolerevokepermission_responce = self.authstub.RoleRevokePermission(rolerevokepermission_request,
+                                                   self.timeout,
+                                                   credentials=self.call_credentials,
+                                                   metadata=self.metadata
+                                                   )
+        return rolerevokepermission_responce
 
     @_handle_errors
     def hash(self):
